@@ -9,7 +9,7 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            background: #e5e6e2;
             font-family: Arial, sans-serif;
         }
         #container {
@@ -68,10 +68,10 @@
     <script>
         // Configuração da cena
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setClearColor(0x000000, 0);
+        renderer.setClearColor(0xe5e6e2, 1);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('container').appendChild(renderer.domElement);
@@ -130,7 +130,7 @@
             // Camada externa (brilho difuso)
             const glowGeometry1 = new THREE.SphereGeometry(0.3, 16, 16);
             const glowMaterial1 = new THREE.MeshBasicMaterial({
-                color: 0xffff00,
+                color: 0x0066cc,
                 transparent: true,
                 opacity: 0.4 // aumentando o brilho
             });
@@ -141,7 +141,7 @@
             // Camada média
             const glowGeometry2 = new THREE.SphereGeometry(0.2, 16, 16);
             const glowMaterial2 = new THREE.MeshBasicMaterial({
-                color: 0xffff00,
+                color: 0x0066cc,
                 transparent: true,
                 opacity: 0.6 // aumentando o brilho
             });
@@ -152,8 +152,8 @@
             // Núcleo do monopolo
             const monopoleGeometry = new THREE.SphereGeometry(0.1, 16, 16);
             const monopoleMaterial = new THREE.MeshPhongMaterial({
-                color: 0xffd700,
-                emissive: 0xffaa00, // aumentando muito o brilho emissivo
+                color: 0x003366,
+                emissive: 0x001122, // aumentando muito o brilho emissivo
                 shininess: 100
             });
             const monopole = new THREE.Mesh(monopoleGeometry, monopoleMaterial);
@@ -165,8 +165,8 @@
         // Linha conectando os monopolos (círculo no plano xy)
         const monopoleLineGeometry = new THREE.TorusGeometry(rMono, 0.05, 8, 100);
         const monopoleLineMaterial = new THREE.MeshPhongMaterial({
-            color: 0xffd700,
-            emissive: 0x332200,
+            color: 0x003366,
+            emissive: 0x001122,
             shininess: 100
         });
         const monopoleLine = new THREE.Mesh(monopoleLineGeometry, monopoleLineMaterial);
@@ -452,8 +452,8 @@
         pointLight.position.set(0, 0, 10);
         scene.add(pointLight);
 
-        // Posicionar câmera
-        camera.position.set(15, 10, 8);
+        // Posicionar câmera para formato horizontal 787x284
+        camera.position.set(20, 5, 6);
         camera.lookAt(0, 0, 0);
 
         // Controles de mouse simples
