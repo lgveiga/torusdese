@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toro com Monopolos Magnéticos</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            font-family: Arial, sans-serif;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 100;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 50%;
+        }
+        .legend-line {
+            width: 20px;
+            height: 3px;
+            margin-right: 10px;
+            background: #8a2be2;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+   
+          
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Configuração da cena
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 0);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // Parâmetros do toro
+        const R = 4.0; // raio maior
+        const r = 1.0; // raio do tubo
+
+        // Criar toro com gradiente de cores
+        const torusGeometry = new THREE.TorusGeometry(R, r, 50, 100);
+        
+        // Criar material com gradiente baseado na posição
+        const torusMaterial = new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.6,
+            side: THREE.DoubleSide
+        });
+
+        // Aplicar cores baseadas na curvatura
+        const colors = [];
+        const positions = torusGeometry.attributes.position;
+        
+        for (let i = 0; i < positions.count; i++) {
+            const x = positions.getX(i);
+            const y = positions.getY(i);
+            const z = positions.getZ(i);
+            
+            // Calcular distância do centro para simular curvatura
+            const radiusLocal = Math.sqrt(x*x + y*y);
+            const normalizedRadius = (radiusLocal - (R-r)) / (2*r);
+            
+            // Interpolação de cor: azul para vermelho
+            const red = Math.max(0, Math.min(1, normalizedRadius));
+            const blue = Math.max(0, Math.min(1, 1 - normalizedRadius));
+            const green = 0.3;
+            
+            colors.push(red, green, blue);
+        }
+        
+        torusGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        const torus = new THREE.Mesh(torusGeometry, torusMaterial);
+        scene.add(torus);
+
+        // Criar monopolos com efeito de brilho
+        const monopoleGroup = new THREE.Group();
+        const n = 20;
+        const rMono = R - 0.1 * r;
+        
+        for (let i = 0; i < n; i++) {
+            const angle = (i / n) * Math.PI * 2;
+            const x = rMono * Math.cos(angle);
+            const y = rMono * Math.sin(angle);
+            const z = 0;
+            
+            // Camada externa (brilho difuso)
+            const glowGeometry1 = new THREE.SphereGeometry(0.3, 16, 16);
+            const glowMaterial1 = new THREE.MeshBasicMaterial({
+                color: 0xffff00,
+                transparent: true,
+                opacity: 0.4 // aumentando o brilho
+            });
+            const glow1 = new THREE.Mesh(glowGeometry1, glowMaterial1);
+            glow1.position.set(x, y, z);
+            monopoleGroup.add(glow1);
+            
+            // Camada média
+            const glowGeometry2 = new THREE.SphereGeometry(0.2, 16, 16);
+            const glowMaterial2 = new THREE.MeshBasicMaterial({
+                color: 0xffff00,
+                transparent: true,
+                opacity: 0.6 // aumentando o brilho
+            });
+            const glow2 = new THREE.Mesh(glowGeometry2, glowMaterial2);
+            glow2.position.set(x, y, z);
+            monopoleGroup.add(glow2);
+            
+            // Núcleo do monopolo
+            const monopoleGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+            const monopoleMaterial = new THREE.MeshPhongMaterial({
+                color: 0xffd700,
+                emissive: 0xffaa00, // aumentando muito o brilho emissivo
+                shininess: 100
+            });
+            const monopole = new THREE.Mesh(monopoleGeometry, monopoleMaterial);
+            monopole.position.set(x, y, z);
+            monopoleGroup.add(monopole);
+        }
+        scene.add(monopoleGroup);
+
+        // Linha conectando os monopolos (círculo no plano xy)
+        const monopoleLineGeometry = new THREE.TorusGeometry(rMono, 0.05, 8, 100);
+        const monopoleLineMaterial = new THREE.MeshPhongMaterial({
+            color: 0xffd700,
+            emissive: 0x332200,
+            shininess: 100
+        });
+        const monopoleLine = new THREE.Mesh(monopoleLineGeometry, monopoleLineMaterial);
+        scene.add(monopoleLine);
+
+        // Linhas de campo magnético
+        const fieldLinesGroup = new THREE.Group();
+        
+        // Linha central vertical
+        const centralLineGeometry = new THREE.BufferGeometry();
+        const zMax = 10 * r;
+        const centralPoints = [];
+        for (let i = 0; i <= 300; i++) {
+            const z = -zMax + (i / 300) * 2 * zMax;
+            centralPoints.push(new THREE.Vector3(0, 0, z));
+        }
+        centralLineGeometry.setFromPoints(centralPoints);
+        const fieldLineMaterial = new THREE.LineBasicMaterial({ color: 0x8a2be2, linewidth: 3 });
+        const centralLine = new THREE.Line(centralLineGeometry, fieldLineMaterial);
+        fieldLinesGroup.add(centralLine);
+
+
+
+        // Adicionar setas nas linhas de campo
+        function createArrow(position, direction, color = 0x8a2be2) {
+            const arrowGeometry = new THREE.ConeGeometry(0.1, 0.3, 8);
+            const arrowMaterial = new THREE.MeshBasicMaterial({ color: color });
+            const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            arrow.position.copy(position);
+            arrow.lookAt(position.clone().add(direction));
+            return arrow;
+        }
+
+        // Setas para as linhas de campo
+        fieldLinesGroup.add(createArrow(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 1)));
+
+        scene.add(fieldLinesGroup);
+
+        // Anéis circundando o toro
+        const ringsGroup = new THREE.Group();
+        const radOffsets = [0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2];
+        const phiPositions = [];
+        for (let i = 0; i < 10; i++) {
+            phiPositions.push((i / 10) * Math.PI * 2);
+        }
+
+        radOffsets.forEach((ro, i) => {
+            phiPositions.forEach(p0 => {
+                const scale = 1 + 0.15 * i; // ovalização progressiva
+                const ringGeometry = new THREE.BufferGeometry();
+                const ringPoints = [];
+                
+                for (let j = 0; j <= 200; j++) {
+                    const phi = (j / 200) * Math.PI * 2;
+                    const x = (R + (r + ro) * Math.cos(phi)) * Math.cos(p0);
+                    const y = (R + (r + ro) * Math.cos(phi)) * Math.sin(p0);
+                    const z = (r + ro) * Math.sin(phi) * scale;
+                    ringPoints.push(new THREE.Vector3(x, y, z));
+                }
+                
+                ringGeometry.setFromPoints(ringPoints);
+                const ringMaterial = new THREE.LineBasicMaterial({ 
+                    color: 0x8a2be2, 
+                    transparent: true,
+                    opacity: 0.8 
+                });
+                const ring = new THREE.Line(ringGeometry, ringMaterial);
+                ringsGroup.add(ring);
+            });
+        });
+
+        scene.add(ringsGroup);
+
+        // Partícula dinâmica na superfície do toro
+        const particle = {
+            theta: Math.PI / 4, // ângulo inicial no tubo do toro  
+            phi: 0,             // ângulo inicial ao redor do eixo principal
+            dtheta: 0.02,       // velocidade angular no tubo
+            dphi: 0.01,         // velocidade angular principal
+            charge: 1.0,
+            trail: [],
+            maxTrailLength: 150
+        };
+
+        // Geometria e material da partícula principal
+        const particleGeometry = new THREE.SphereGeometry(0.12, 16, 16);
+        const particleMaterial = new THREE.MeshPhongMaterial({
+            color: 0xff2244,
+            emissive: 0xff1122,
+            shininess: 100
+        });
+        const particleMesh = new THREE.Mesh(particleGeometry, particleMaterial);
+        scene.add(particleMesh);
+
+        // Sistema de rastro da partícula
+        const trailGeometry = new THREE.BufferGeometry();
+        const trailMaterial = new THREE.LineBasicMaterial({
+            color: 0xff4444,
+            transparent: true,
+            opacity: 0.7,
+            linewidth: 2
+        });
+        const trailLine = new THREE.Line(trailGeometry, trailMaterial);
+        scene.add(trailLine);
+
+        // Partículas sparkle
+        const sparkles = [];
+        const sparkleGeometry = new THREE.SphereGeometry(0.03, 8, 8);
+
+        // Função para calcular posição na superfície do toro
+        function getTorusPosition(theta, phi) {
+            const x = (R + r * Math.cos(theta)) * Math.cos(phi);
+            const y = (R + r * Math.cos(theta)) * Math.sin(phi);
+            const z = r * Math.sin(theta);
+            return new THREE.Vector3(x, y, z);
+        }
+
+        // Função para calcular campo magnético dos monopolos na posição da partícula
+        function getMagneticField(position) {
+            let fieldX = 0, fieldY = 0, fieldZ = 0;
+            
+            // Contribuição de cada monopolo
+            for (let i = 0; i < n; i++) {
+                const angle = (i / n) * Math.PI * 2;
+                const monopoleX = rMono * Math.cos(angle);
+                const monopoleY = rMono * Math.sin(angle);
+                const monopoleZ = 0;
+                
+                // Vetor da posição do monopolo para a partícula
+                const dx = position.x - monopoleX;
+                const dy = position.y - monopoleY; 
+                const dz = position.z - monopoleZ;
+                const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                
+                if (distance > 0.1) { // evitar singularidade
+                    // Campo magnético radial do monopolo
+                    const fieldStrength = 0.8 / (distance * distance * distance);
+                    fieldX += dx * fieldStrength;
+                    fieldY += dy * fieldStrength;
+                    fieldZ += dz * fieldStrength;
+                }
+            }
+            
+            return new THREE.Vector3(fieldX, fieldY, fieldZ);
+        }
+
+        // Função para calcular as derivadas dos vetores tangentes do toro
+        function getTorusVelocity(theta, phi, dtheta, dphi) {
+            // Derivadas da posição em relação aos parâmetros
+            const dX_dtheta = -r * Math.sin(theta) * Math.cos(phi);
+            const dY_dtheta = -r * Math.sin(theta) * Math.sin(phi);
+            const dZ_dtheta = r * Math.cos(theta);
+            
+            const dX_dphi = -(R + r * Math.cos(theta)) * Math.sin(phi);
+            const dY_dphi = (R + r * Math.cos(theta)) * Math.cos(phi);
+            const dZ_dphi = 0;
+            
+            // Velocidade 3D na superfície
+            const vx = dX_dtheta * dtheta + dX_dphi * dphi;
+            const vy = dY_dtheta * dtheta + dY_dphi * dphi;
+            const vz = dZ_dtheta * dtheta + dZ_dphi * dphi;
+            
+            return new THREE.Vector3(vx, vy, vz);
+        }
+
+        // Função para atualizar a partícula
+        function updateParticle() {
+            // Calcular posição atual
+            const currentPos = getTorusPosition(particle.theta, particle.phi);
+            
+            // Calcular velocidade atual na superfície
+            const velocity = getTorusVelocity(particle.theta, particle.phi, particle.dtheta, particle.dphi);
+            
+            // Campo magnético na posição atual
+            const B_field = getMagneticField(currentPos);
+            
+            // Força de Lorentz: F = q(v × B)
+            const lorentzForce = velocity.clone().cross(B_field).multiplyScalar(particle.charge);
+            
+            // As componentes da força afetam as velocidades angulares
+            // Isso é uma aproximação da dinâmica na superfície
+            const forceScale = 0.0001;
+            particle.dtheta += (lorentzForce.z * Math.cos(particle.theta) - lorentzForce.x * Math.sin(particle.theta)) * forceScale;
+            particle.dphi += (-lorentzForce.x * Math.sin(particle.phi) + lorentzForce.y * Math.cos(particle.phi)) * forceScale / (R + r * Math.cos(particle.theta));
+            
+            // Adicionar um pouco de movimento base para garantir que nunca pare
+            particle.dtheta += 0.005 * Math.sin(particle.phi * 3);
+            particle.dphi += 0.008 + 0.002 * Math.cos(particle.theta * 2);
+            
+            // Damping suave para estabilidade
+            particle.dtheta *= 0.98;
+            particle.dphi *= 0.98;
+            
+            // Limitar velocidades
+            particle.dtheta = Math.max(-0.1, Math.min(0.1, particle.dtheta));
+            particle.dphi = Math.max(-0.05, Math.min(0.05, particle.dphi));
+            
+            // Atualizar ângulos
+            particle.theta += particle.dtheta;
+            particle.phi += particle.dphi;
+            
+            // Manter theta no intervalo [0, 2π]
+            if (particle.theta < 0) particle.theta += 2 * Math.PI;
+            if (particle.theta > 2 * Math.PI) particle.theta -= 2 * Math.PI;
+            
+            // Manter phi no intervalo [0, 2π]  
+            if (particle.phi < 0) particle.phi += 2 * Math.PI;
+            if (particle.phi > 2 * Math.PI) particle.phi -= 2 * Math.PI;
+            
+            // Atualizar posição da mesh
+            particleMesh.position.copy(currentPos);
+            
+            // Cor dinâmica baseada na velocidade total
+            const speed = Math.sqrt(particle.dtheta*particle.dtheta + particle.dphi*particle.dphi);
+            const normalizedSpeed = Math.min(speed * 8, 1);
+            
+            // Mudança de cor: azul (lento) -> verde -> amarelo -> vermelho (rápido)
+            const hue = 0.7 - normalizedSpeed * 0.7; // de azul (0.7) para vermelho (0)
+            particleMaterial.color.setHSL(hue, 1, 0.5);
+            particleMaterial.emissive.setHSL(hue, 1, 0.2);
+            
+            // Atualizar rastro
+            particle.trail.push(currentPos.clone());
+            if (particle.trail.length > particle.maxTrailLength) {
+                particle.trail.shift();
+            }
+            
+            // Atualizar geometria do rastro
+            if (particle.trail.length > 1) {
+                trailGeometry.setFromPoints(particle.trail);
+                trailMaterial.color.setHSL(hue, 1, 0.6);
+            }
+            
+            // Criar sparkles quando velocidade é alta
+            if (Math.random() < normalizedSpeed * 0.3) {
+                const sparkle = new THREE.Mesh(sparkleGeometry, new THREE.MeshBasicMaterial({
+                    color: new THREE.Color().setHSL(hue + 0.1, 1, 0.8),
+                    transparent: true,
+                    opacity: 0.8
+                }));
+                sparkle.position.copy(currentPos);
+                sparkle.position.add(new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.3,
+                    (Math.random() - 0.5) * 0.3, 
+                    (Math.random() - 0.5) * 0.3
+                ));
+                sparkle.scale.setScalar(Math.random() * 0.5 + 0.5);
+                sparkle.life = 30 + Math.floor(Math.random() * 30);
+                sparkles.push(sparkle);
+                scene.add(sparkle);
+            }
+        }
+
+        // Função para atualizar sparkles
+        function updateSparkles() {
+            for (let i = sparkles.length - 1; i >= 0; i--) {
+                const sparkle = sparkles[i];
+                sparkle.life--;
+                sparkle.material.opacity = (sparkle.life / 60) * 0.8;
+                sparkle.scale.multiplyScalar(1.03);
+                sparkle.rotation.x += 0.1;
+                sparkle.rotation.y += 0.1;
+                
+                if (sparkle.life <= 0) {
+                    scene.remove(sparkle);
+                    sparkles.splice(i, 1);
+                }
+            }
+        }
+
+        scene.add(ringsGroup);
+
+        // Iluminação
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 0.5);
+        pointLight.position.set(0, 0, 10);
+        scene.add(pointLight);
+
+        // Posicionar câmera
+        camera.position.set(15, 10, 8);
+        camera.lookAt(0, 0, 0);
+
+        // Controles de mouse simples
+        let mouseDown = false;
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+        let currentRotationX = 0;
+        let currentRotationY = 0;
+
+        renderer.domElement.addEventListener('mousedown', (event) => {
+            mouseDown = true;
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => {
+            mouseDown = false;
+        });
+
+        renderer.domElement.addEventListener('mousemove', (event) => {
+            if (mouseDown) {
+                const deltaX = event.clientX - mouseX;
+                const deltaY = event.clientY - mouseY;
+                
+                targetRotationY += deltaX * 0.005;
+                targetRotationX += deltaY * 0.005;
+                
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            }
+        });
+
+        // Zoom com roda do mouse
+        renderer.domElement.addEventListener('wheel', (event) => {
+            const scale = event.deltaY > 0 ? 1.1 : 0.9;
+            camera.position.multiplyScalar(scale);
+        });
+
+        // Loop de animação
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Suavizar rotação
+            currentRotationX += (targetRotationX - currentRotationX) * 0.1;
+            currentRotationY += (targetRotationY - currentRotationY) * 0.1;
+            
+            // Aplicar rotação a todos os objetos
+            scene.rotation.x = currentRotationX;
+            scene.rotation.y = currentRotationY;
+            
+            // Rotação suave dos monopolos
+            monopoleGroup.children.forEach((child, index) => {
+                if (child.material && child.material.emissive) {
+                    child.rotation.y += 0.02;
+                }
+            });
+            
+            // Atualizar dinâmica da partícula
+            updateParticle();
+            updateSparkles();
+            
+            renderer.render(scene, camera);
+        }
+
+        // Redimensionamento da janela
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
