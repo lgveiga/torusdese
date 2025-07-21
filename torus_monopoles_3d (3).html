@@ -456,37 +456,9 @@
         camera.position.set(20, 5, 6);
         camera.lookAt(0, 0, 0);
 
-        // Controles de mouse simples
-        let mouseDown = false;
-        let mouseX = 0;
-        let mouseY = 0;
-        let targetRotationX = 0;
-        let targetRotationY = 0;
-        let currentRotationX = 0;
-        let currentRotationY = 0;
-
-        renderer.domElement.addEventListener('mousedown', (event) => {
-            mouseDown = true;
-            mouseX = event.clientX;
-            mouseY = event.clientY;
-        });
-
-        renderer.domElement.addEventListener('mouseup', () => {
-            mouseDown = false;
-        });
-
-        renderer.domElement.addEventListener('mousemove', (event) => {
-            if (mouseDown) {
-                const deltaX = event.clientX - mouseX;
-                const deltaY = event.clientY - mouseY;
-                
-                targetRotationY += deltaX * 0.005;
-                targetRotationX += deltaY * 0.005;
-                
-                mouseX = event.clientX;
-                mouseY = event.clientY;
-            }
-        });
+        // Rotação inicial
+        scene.rotation.x = (-137 * Math.PI) / 180; // -137 graus
+        scene.rotation.y = (27 * Math.PI) / 180; // 27 graus
 
         // Zoom com roda do mouse
         renderer.domElement.addEventListener('wheel', (event) => {
@@ -497,14 +469,6 @@
         // Loop de animação
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Suavizar rotação
-            currentRotationX += (targetRotationX - currentRotationX) * 0.1;
-            currentRotationY += (targetRotationY - currentRotationY) * 0.1;
-            
-            // Aplicar rotação a todos os objetos
-            scene.rotation.x = currentRotationX;
-            scene.rotation.y = currentRotationY;
             
             // Rotação suave dos monopolos
             monopoleGroup.children.forEach((child, index) => {
